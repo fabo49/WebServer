@@ -1,15 +1,32 @@
+# Universidad de Costa Rica
+# Escuela de Ciencias de la Computacion e Informatica
+# CI-2413: Desarrollo de Aplicaciones Web
+# - Carlos Mata Guzman
+# - Fabian Rodriguez Obando
+# Tarea 1: Mini servidor web
+# I Semestre 2016
+
 import socket, time, thread
 
 # Variable que comparten todos los hilos
 log = open("log.csv", "w")  # Donde se va a guardar la bitacora del programa
 log.write("Metodo,Estampilla de tiempo,Servidor,Refiere,URL,Datos\n")
-
-server_port = 2080  # Puerto de escucha del servidor
-
+log_lock = thread.allocate_lock()
 
 # ---- Funciones del servidor ----
+
+def WriteLog(new_data):
+    log_lock.acquire()
+    log.write(new_data)
+    log_lock.release()
+
 def Get(data):
     print("Entre a GET")
+    lines = data.split('\n')
+    method = lines[0].split(' ')[0]
+    timestamp = time.strftime("%c")
+    server = lines[1].split(' ')[1]
+    WriteLog(method+','+timestamp+','+server+'\n')
 
 
 def Post(data):
@@ -34,6 +51,8 @@ def ProcessData(thread_number, data):
 
 
 def OpenServer():
+    server_port = 2080  # Puerto de escucha del servidor
+
     # --------------Conexion entrante-----------------
     # Creando el socket TCP/IP
     sock_input = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -50,21 +69,24 @@ def OpenServer():
     data_size = 10000
     thread_number = 1
     while len(data_buffer) < data_size <= 10000:
-
-        # TODO: hacer los hilos
         try:
             data = input_connection.recv(1000).decode()
             # Revisa que tenga datos
             if data:
-                thread.start_new_thread(ProcessData, (thread_number, data))
-                thread_number += 1
+                try:
+                    thread.start_new_thread(ProcessData,
+                                            (thread_number, data))  # Crea el hilo para responder la solicitud
+                    thread_number += 1
+                except:
+                    print("No se pudo crear el hilo")
         except:
             print("ERROR: no se pudo establecer conexion con el socket")
             break
 
     sock_input.close()
+    log.close()
 
 
-# ----- Programa (main)-----
+# ----- Programa principal-----
 
 OpenServer()
