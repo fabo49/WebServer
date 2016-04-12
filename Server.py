@@ -39,7 +39,9 @@ def Get(data, input_conection):
     if return_code == 200:
         data_return += str(return_code)
         data_return += " OK\r\n\r\n"
-        data_return = "<!DOCTYPE html><html><head><meta charset=\"utf-8\"><title>User information</title></head><body><h1>Bienvenido</h1><h4>Mini servidor hecho en python</h4><hr/><p>A continuacion puede ingresar sus datos al sistema:</p><form method=\"post\"><label for=\"input_name\">Nombre:</label><br/><input type=\"text\" id=\"input_name\"><br/><label for=\"input_lastname\">Apellidos</label><br/><input type=\"text\" id=\"input_lastname\"><br/><label for=\"input_mail\">Correo:</label><br/><input type=\"email\" id=\"input_mail\"><br/><label for=\"input_date\">Fecha de nacimiento: </label><input type=\"date\" id=\"input_date\"><br/><input type=\"submit\" id=\"btn_submit\" value=\"Enviar datos\"></form><hr/></body></html>"
+        fin = open("index.html", 'r')
+        data_return += str(fin.read())
+        fin.close()
     elif return_code == 404:
         print("Error 404")
     elif return_code == 406:
@@ -50,6 +52,30 @@ def Get(data, input_conection):
 
 def Post(data, input_conection):
     print("Entre a POST")
+    lines = data.split('\n')
+    method = lines[0].split(' ')[0]
+    timestamp = time.strftime("%c")
+    server = (lines[1].split(' ')[1]).replace("\r", "")
+    info = data[data.index('\r\n\r\n')+4:]
+    #TODO averiguar que quiere decir con refiere
+    #TODO ver como identificar el url
+    url = ""
+    refiere = ""
+    WriteLog(method + ", " + timestamp + ", " + server + ", " + refiere + ", " + url + ", " + info + '\n')
+
+    return_code = 200  # Esto hay que cambiarlo dependiendo de si hubo error o no.
+    data_return = "HTTP/1.1 "
+    if return_code == 200:
+        user_info = info.replace('+', ' ').split('&')
+        user_name = str(user_info[0].split('=')[1] + " " + user_info[1].split('=')[1])
+        data_return += str(return_code)
+        data_return += " OK\r\n\r\n"
+        fin = open("user_welcome.html", 'r')
+        data_return += str(fin.read())%(user_name)
+        fin.close()
+    return (data_return)
+
+
 
 
 def Head(data, input_conection):
@@ -73,7 +99,7 @@ def ProcessData(thread_number, data, input_conection):
 
 
 def OpenServer():
-    server_port = 2080  # Puerto de escucha del servidor
+    server_port = 1080  # Puerto de escucha del servidor
 
     # --------------Conexion entrante-----------------
     # Creando el socket TCP/IP
@@ -100,8 +126,9 @@ def OpenServer():
                 except:
                     print("No se pudo crear el hilo")
         except:
-            print("ERROR: no se pudo establecer conexion con el socket")
-        sock_input.close()
+            #print("ERROR: no se pudo establecer conexion con el socket")
+            pass
+    sock_input.close()
 
 
 # ----- Programa principal-----
