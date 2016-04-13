@@ -17,6 +17,18 @@ log_lock = thread.allocate_lock()
 
 # ---- Funciones del servidor ----
 
+# Crea un diccionario con los datos del encabezado (key) y sus datos (value),
+# esto para facilitar la busqueda y operaciones de los mismos
+def DicData(data):
+    list_headers = data.split('\n')
+    dict = {} # Crea el diccionario vacio
+    for header in list_headers:
+        if header != '\r' and header != '':
+            line = header.split(' ', 1) # Separa la primera palabra (encabezado) del resto de la info (los datos)
+            dict[line[0]] = line[1] # Lo agrega al diccionario
+    return dict
+
+
 def WriteLog(new_data):
     log_lock.acquire()
     log = open("log.csv", "a")
