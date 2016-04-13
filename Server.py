@@ -24,8 +24,12 @@ def DicData(data):
     dict = {} # Crea el diccionario vacio
     for header in list_headers:
         if header != '\r' and header != '':
-            line = header.split(' ', 1)
-            dict[line[0]] = line[1]
+            if header.find(' ') == -1:
+                # Si es un POST, en la ultima hilera lo que viene son los parametros
+                dict["Params:"] = header
+            else:
+                line = header.split(' ', 1)
+                dict[line[0]] = line[1]
     return dict
 
 
@@ -58,29 +62,26 @@ def Get(dic_headers):
     return data_return
 
 
-def Post(data):
+def Post(dic_headers):
     print "--- Entro al POST"
-    lines = data.split('\n')
-    method = lines[0].split(' ')[0]
-    timestamp = time.strftime("%c")
-    server = (lines[1].split(' ')[1]).replace("\r", "")
-    info = data[data.index('\r\n\r\n')+4:]
-    #TODO averiguar que quiere decir con refiere
-    #TODO ver como identificar el url
-    url = ""
-    refiere = ""
-    WriteLog("POST" + ',' + timestamp + ',' + server + ',' + refiere + ',' + url + ',' + data + '\n')
 
-    return_code = 200  # Esto hay que cambiarlo dependiendo de si hubo error o no.
-    data_return = "HTTP/1.1 "
-    if return_code == 200:
-        user_info = info.replace('+', ' ').split('&')
-        user_name = str(user_info[0].split('=')[1] + " " + user_info[1].split('=')[1])
-        data_return += str(return_code)
-        data_return += " OK\r\n\r\n"
-        fin = open("user_welcome.html", 'r')
-        data_return += str(fin.read())%(user_name)
-        fin.close()
+    server = dic_headers["Host:"][:-1] if "Host:" in dic_headers else " "
+    referer = dic_headers["Referer:"][:-1] if "Referer:" in dic_headers else " "
+    timestamp = time.strftime("%c")
+    data_url = dic_headers["POST"].split(" ")[0]
+    url = data_url.split("?")[0]
+    # Esto es solo si se ocupan sacar tambien las variables de la URL:
+    # data += dic_headers.split("?")[1] if len(data_url.split("?")) > 1 else " "
+    data = dic_headers["Params:"]
+    WriteLog("POST" + ',' + timestamp + ',' + server + ',' + referer + ',' + url + ',' + data + '\n')
+    data_return = "HTTP/1.1 200 OK\r\n\r\n"
+
+    user_info = data.replace('+', ' ').split('&')
+    user_name = str(user_info[0].split('=')[1] + " " + user_info[1].split('=')[1])
+    fin = open("user_welcome.html", 'r')
+    data_return += str(fin.read())%(user_name)
+    fin.close()
+
     print "--- Salgo del POST"
     return data_return
 
