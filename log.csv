@@ -1,3 +1,4 @@
-Metodo, Estampilla de tiempo, Servidor, Refiere, URL, Datos
-GET, Fri Apr  8 09:10:12 2016, localhost:2080
-GET, Tue Apr 12 17:31:35 2016, localhost:2080
+Metodo,Estampilla de tiempo,Servidor,Refiere,URL,Datos
+GET,Tue Apr 12 20:48:39 2016,localhost:1080, ,/, 
+GET,Tue Apr 12 20:48:39 2016,localhost:1080, ,/, 
+GET,Tue Apr 12 20:48:41 2016,localhost:1080,http://localhost:1080/,/favicon.ico, 

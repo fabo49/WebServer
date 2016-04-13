@@ -10,7 +10,7 @@ import socket, time, thread
 
 # Variable que comparten todos los hilos
 log = open("log.csv", "w")  # Donde se va a guardar la bitacora del programa
-log.write("Metodo, Estampilla de tiempo, Servidor, Refiere, URL, Datos\n")
+log.write("Metodo,Estampilla de tiempo,Servidor,Refiere,URL,Datos\n")
 log.close()
 log_lock = thread.allocate_lock()
 
@@ -24,8 +24,8 @@ def DicData(data):
     dict = {} # Crea el diccionario vacio
     for header in list_headers:
         if header != '\r' and header != '':
-            line = header.split(' ', 1) # Separa la primera palabra (encabezado) del resto de la info (los datos)
-            dict[line[0]] = line[1] # Lo agrega al diccionario
+            line = header.split(' ', 1)
+            dict[line[0]] = line[1]
     return dict
 
 
@@ -37,33 +37,29 @@ def WriteLog(new_data):
     log_lock.release()
 
 
-def Get(data, input_conection):
-    print("Entre a GET")
-    lines = data.split('\n')
-    method = lines[0].split(' ')[0]
+def Get(dic_headers):
+    print "--- Entre a GET"
+
+    # El [:-1] es para quitarle el "\r" ya que molesta para la bitacora
+    server = dic_headers["Host:"][:-1] if "Host:" in dic_headers else " "
+    referer = dic_headers["Referer:"][:-1] if "Referer:" in dic_headers else " "
     timestamp = time.strftime("%c")
-    server = lines[1].split(' ')[1]
-    WriteLog(method + ", " + timestamp + ", " + server + '\n')
+    data_url = dic_headers["GET"].split(" ")[0]
+    url = data_url.split("?")[0]
+    data = data_url.split("?")[1] if len(data_url.split("?")) > 1 else " "
+    WriteLog("GET" + ',' + timestamp + ',' + server + ',' + referer + ',' + url + ',' + data + '\n')
+    data_return = "HTTP/1.1 200 OK\r\n\r\n"
 
-    # TODO: seguir el flowchart para revisar si todo cumple y retornar el codigo de respuesta
-    return_code = 200  # Esto hay que cambiarlo dependiendo de si hubo error o no.
-    data_return = "HTTP/1.1 "
-    if return_code == 200:
-        data_return += str(return_code)
-        data_return += " OK\r\n\r\n"
-        fin = open("index.html", 'r')
-        data_return += str(fin.read())
-        fin.close()
-    elif return_code == 404:
-        print("Error 404")
-    elif return_code == 406:
-        print("Error 406")
+    entity_body = open("index.html", 'r')
+    data_return += str(entity_body.read())
+    entity_body.close()
 
-    return (data_return)
+    print "--- Salgo del GET"
+    return data_return
 
 
-def Post(data, input_conection):
-    print("Entre a POST")
+def Post(data):
+    print "--- Entro al POST"
     lines = data.split('\n')
     method = lines[0].split(' ')[0]
     timestamp = time.strftime("%c")
@@ -73,7 +69,7 @@ def Post(data, input_conection):
     #TODO ver como identificar el url
     url = ""
     refiere = ""
-    WriteLog(method + ", " + timestamp + ", " + server + ", " + refiere + ", " + url + ", " + info + '\n')
+    WriteLog("POST" + ',' + timestamp + ',' + server + ',' + refiere + ',' + url + ',' + data + '\n')
 
     return_code = 200  # Esto hay que cambiarlo dependiendo de si hubo error o no.
     data_return = "HTTP/1.1 "
@@ -85,27 +81,38 @@ def Post(data, input_conection):
         fin = open("user_welcome.html", 'r')
         data_return += str(fin.read())%(user_name)
         fin.close()
-    return (data_return)
+    print "--- Salgo del POST"
+    return data_return
 
 
 
 
-def Head(data, input_conection):
-    print("Entre a HEAD")
+def Head(data):
+    print "--- Entro al HEAD"
+
+    print "--- Salgo del HEAD"
 
 
 def ProcessData(thread_number, data, input_conection):
-    print("Soy el hilo {}".format(thread_number))
-    print(data)
-    data_return = ""
-    # Obtiene identifica el tipo de operacion y la ejecuta
+    print "----- Soy el hilo {} -----".format(thread_number)
+    print "Datos del header:"
+    print data
+
+    # Identifica el tipo de operacion y la ejecuta
     operation = data.split('\n')[0].split(' ')[0]
+    dic_headers = DicData(data)
+
+    # TODO: buscar si hay error 404 o 406
+
+    data_return = ""
     if (operation == "GET"):
-        data_return = Get(data, input_conection)
+        data_return = Get(dic_headers)
     elif (operation == "POST"):
-        data_return = Post(data, input_conection)
+        data_return = Post(dic_headers)
     elif (operation == "HEAD"):
-        data_return = Head(data, input_conection)
+        data_return = Head(dic_headers)
+
+    # Le envia la info al navegador
     input_conection.send(data_return)
     input_conection.close()
 
