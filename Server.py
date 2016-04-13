@@ -1,12 +1,12 @@
+import socket, time, thread
+
 # Universidad de Costa Rica
 # Escuela de Ciencias de la Computacion e Informatica
 # CI-2413: Desarrollo de Aplicaciones Web
 # - Carlos Mata Guzman
 # - Fabian Rodriguez Obando
-# Tarea 1: Mini servidor web
+# Tarea 1: Mini servidor web http
 # I Semestre 2016
-
-import socket, time, thread
 
 # Variable que comparten todos los hilos
 log = open("log.csv", "w")  # Donde se va a guardar la bitacora del programa
@@ -17,11 +17,11 @@ log_lock = thread.allocate_lock()
 
 # ---- Funciones del servidor ----
 
-# Crea un diccionario con los datos del encabezado (key) y sus datos (value),
-# esto para facilitar la busqueda y operaciones de los mismos
+# @definition: Crea un diccionario con los datos del encabezado (key) y sus datos (value).
+# @return: El diccionario recien creado.
 def DicData(data):
     list_headers = data.split('\n')
-    dict = {} # Crea el diccionario vacio
+    dict = {}  # Crea el diccionario vacio
     for header in list_headers:
         if header != '\r' and header != '':
             if header.find(' ') == -1:
@@ -33,6 +33,7 @@ def DicData(data):
     return dict
 
 
+# @definition: Metodo auxiliar que escribe en la bitacora, al ser un recurso compartido, se encarga de bloquearlo para que solo haya un hilo escribiendo en ella a la vez.
 def WriteLog(new_data):
     log_lock.acquire()
     log = open("log.csv", "a")
@@ -41,6 +42,19 @@ def WriteLog(new_data):
     log_lock.release()
 
 
+# @definition: Metodo que revisa si el archivo solicitado se encuentra en el servidor.
+# @return: False si no hay error 404, True si si hay error.
+def Check404Error(path):
+    return False
+
+
+# @definition: Metodo que revisa si el tipo solicitado esta dentro de los MIME Types del servidor.
+# @return: False si no hay error 406, True si si hay error.
+def Check406Error(types):
+    return False
+
+# @definition: Evento que se activa cuando el servidor recibe una peticion de un GET.
+# @return: String con la informacion que el servidor le va a retornar al cliente.
 def Get(dic_headers):
     print "--- Entre a GET"
 
@@ -54,14 +68,21 @@ def Get(dic_headers):
     WriteLog("GET" + ',' + timestamp + ',' + server + ',' + referer + ',' + url + ',' + data + '\n')
     data_return = "HTTP/1.1 200 OK\r\n\r\n"
 
-    entity_body = open("index.html", 'r')
-    data_return += str(entity_body.read())
-    entity_body.close()
+    if url == '/' or url == '/index.html':
+        entity_body = open("index.html", 'r')
+        data_return += str(entity_body.read())
+        entity_body.close()
+    else:
+        # TODO: revisar esto
+        entity_body = open(url[1:], 'r')
+        data_return += str(entity_body.read())
+        entity_body.close()
 
     print "--- Salgo del GET"
     return data_return
 
-
+# @definition: Evento que se activa cuando el servidor recibe una peticion de un POST.
+# @return: String con la informacion que el servidor le va a retornar al cliente.
 def Post(dic_headers):
     print "--- Entro al POST"
 
@@ -79,21 +100,20 @@ def Post(dic_headers):
     user_info = data.replace('+', ' ').split('&')
     user_name = str(user_info[0].split('=')[1] + " " + user_info[1].split('=')[1])
     fin = open("user_welcome.html", 'r')
-    data_return += str(fin.read())%(user_name)
+    data_return += str(fin.read()) % (user_name)
     fin.close()
 
     print "--- Salgo del POST"
     return data_return
 
-
-
-
+# @definition: Evento que se activa cuando el servidor recibe una peticion de un HEAD.
+# @return: String con la informacion que el servidor le va a retornar al cliente.
 def Head(data):
     print "--- Entro al HEAD"
 
     print "--- Salgo del HEAD"
 
-
+# @definition: Metodo que analiza los encabezados que recibe el servidor y ejecuta la peticion que corresponda.
 def ProcessData(thread_number, data, input_conection):
     print "----- Soy el hilo {} -----".format(thread_number)
     print "Datos del header:"
@@ -117,7 +137,7 @@ def ProcessData(thread_number, data, input_conection):
     input_conection.send(data_return)
     input_conection.close()
 
-
+# @definition: Metodo que "levanta" el servidor  y lo deja ejecutando infinitamente.
 def OpenServer():
     server_port = 1080  # Puerto de escucha del servidor
 
@@ -146,7 +166,7 @@ def OpenServer():
                 except:
                     print("No se pudo crear el hilo")
         except:
-            #print("ERROR: no se pudo establecer conexion con el socket")
+            # print("ERROR: no se pudo establecer conexion con el socket")
             pass
     sock_input.close()
 
