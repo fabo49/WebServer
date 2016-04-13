@@ -1,4 +1,4 @@
-import socket, time, thread
+import socket, time, thread, os
 
 # Universidad de Costa Rica
 # Escuela de Ciencias de la Computacion e Informatica
@@ -18,6 +18,7 @@ log_lock = thread.allocate_lock()
 # ---- Funciones del servidor ----
 
 # @definition: Crea un diccionario con los datos del encabezado (key) y sus datos (value).
+# @param: String con los encabezados a como los envia el navegador.
 # @return: El diccionario recien creado.
 def DicData(data):
     list_headers = data.split('\n')
@@ -34,6 +35,7 @@ def DicData(data):
 
 
 # @definition: Metodo auxiliar que escribe en la bitacora, al ser un recurso compartido, se encarga de bloquearlo para que solo haya un hilo escribiendo en ella a la vez.
+# @param: String con la informacion que se quiere escribir en la bitacora.
 def WriteLog(new_data):
     log_lock.acquire()
     log = open("log.csv", "a")
@@ -43,17 +45,23 @@ def WriteLog(new_data):
 
 
 # @definition: Metodo que revisa si el archivo solicitado se encuentra en el servidor.
+# @param: La ruta del archivo a buscar.
 # @return: False si no hay error 404, True si si hay error.
 def Check404Error(path):
-    return False
+    if os.path.isfile(path):
+        return False
+    return True
 
 
 # @definition: Metodo que revisa si el tipo solicitado esta dentro de los MIME Types del servidor.
+# @param: Un string (separado por comas ",") con los MIME Types que acepta/quiere el cliente.
 # @return: False si no hay error 406, True si si hay error.
 def Check406Error(types):
     return False
 
+
 # @definition: Evento que se activa cuando el servidor recibe una peticion de un GET.
+# @param: Diccionario con los headers
 # @return: String con la informacion que el servidor le va a retornar al cliente.
 def Get(dic_headers):
     print "--- Entre a GET"
@@ -73,15 +81,18 @@ def Get(dic_headers):
         data_return += str(entity_body.read())
         entity_body.close()
     else:
-        # TODO: revisar esto
-        entity_body = open(url[1:], 'r')
-        data_return += str(entity_body.read())
-        entity_body.close()
+        # Ignoramos las peticiones por el favicon.ico que hace el navegador
+        if url[1:] != "favicon.ico":
+            entity_body = open(url[1:], 'r')
+            data_return += str(entity_body.read())
+            entity_body.close()
 
     print "--- Salgo del GET"
     return data_return
 
+
 # @definition: Evento que se activa cuando el servidor recibe una peticion de un POST.
+# @param: Diccionario con los headers
 # @return: String con la informacion que el servidor le va a retornar al cliente.
 def Post(dic_headers):
     print "--- Entro al POST"
@@ -106,40 +117,56 @@ def Post(dic_headers):
     print "--- Salgo del POST"
     return data_return
 
+
 # @definition: Evento que se activa cuando el servidor recibe una peticion de un HEAD.
+# @param: Diccionario con los headers
 # @return: String con la informacion que el servidor le va a retornar al cliente.
 def Head(data):
     print "--- Entro al HEAD"
 
     print "--- Salgo del HEAD"
 
+
 # @definition: Metodo que analiza los encabezados que recibe el servidor y ejecuta la peticion que corresponda.
+# @params: Int con el numero de hilo, String con la informacion de los encabezados a como los envia el navegador, Socket de la conexion entrante
 def ProcessData(thread_number, data, input_conection):
     print "----- Soy el hilo {} -----".format(thread_number)
     print "Datos del header:"
     print data
 
-    # Identifica el tipo de operacion y la ejecuta
-    operation = data.split('\n')[0].split(' ')[0]
-    dic_headers = DicData(data)
-
-    # TODO: buscar si hay error 404 o 406
-
     data_return = ""
-    if (operation == "GET"):
-        data_return = Get(dic_headers)
-    elif (operation == "POST"):
-        data_return = Post(dic_headers)
-    elif (operation == "HEAD"):
-        data_return = Head(dic_headers)
+    first_header = data.split('\n')[0]
+    url = first_header.split(' ')[1]
+    if url != '/' and Check404Error(url[1:]):
+        # Hay error 404, retornar error de codigo 404.
+        data_return = "HTTP/1.1 404 Not Found\r\n\r\n"
+        entity_body = open("404.html", 'r')
+        data_return += str(entity_body.read())
+        entity_body.close()
+    else:
+        dic_headers = DicData(data)
+        if Check406Error(dic_headers["Accept:"]):
+            # Hay error 406, retornar error de codigo 406.
+            pass
+        else:
+            # No hubo errores.
+            operation = data.split('\n')[0].split(' ')[0]  # Identifica el tipo de operacion y la ejecuta
 
-    # Le envia la info al navegador
+            if (operation == "GET"):
+                data_return = Get(dic_headers)
+            elif (operation == "POST"):
+                data_return = Post(dic_headers)
+            elif (operation == "HEAD"):
+                data_return = Head(dic_headers)
+
+    # Le envia la info al navegador y cierra la conexion
     input_conection.send(data_return)
     input_conection.close()
 
+
 # @definition: Metodo que "levanta" el servidor  y lo deja ejecutando infinitamente.
 def OpenServer():
-    server_port = 1080  # Puerto de escucha del servidor
+    server_port = 7080  # Puerto de escucha del servidor
 
     # --------------Conexion entrante-----------------
     # Creando el socket TCP/IP
