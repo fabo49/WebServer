@@ -56,9 +56,12 @@ def Check404Error(path):
 # @definition: Metodo que revisa si el tipo solicitado esta dentro de los MIME Types del servidor.
 # @param: Un string (separado por comas ",") con los MIME Types que acepta/quiere el cliente.
 # @return: False si no hay error 406, True si si hay error.
-def Check406Error(types):
-    return False
-
+def Check406Error(mime_types, type):
+    type = type[type.rfind('.'):]
+    mime_types = mime_types.split(',')
+    for element in mime_types:
+        acceptable_types = element.split(';')[0]
+    return True if type in acceptable_types else False
 
 # @definition: Evento que se activa cuando el servidor recibe una peticion de un GET.
 # @param: Diccionario con los headers
@@ -111,7 +114,7 @@ def Post(dic_headers):
     user_info = data.replace('+', ' ').split('&')
     user_name = str(user_info[0].split('=')[1] + " " + user_info[1].split('=')[1])
     fin = open("user_welcome.html", 'r')
-    data_return += str(fin.read()) % (user_name)
+    data_return += str(fin.read()) % (user_name.encode('utf-8'))
     fin.close()
 
     print "--- Salgo del POST"
@@ -145,9 +148,12 @@ def ProcessData(thread_number, data, input_conection):
         entity_body.close()
     else:
         dic_headers = DicData(data)
-        if Check406Error(dic_headers["Accept:"]):
+        if Check406Error(dic_headers["Accept:"], url[1:]):
             # Hay error 406, retornar error de codigo 406.
-            pass
+            data_return = "HTTP/1.1 404 Not Acceptable\r\n\r\n"
+            entity_body = open("406.html", 'r')
+            data_return += str(entity_body.read())
+            entity_body.close()
         else:
             # No hubo errores.
             operation = data.split('\n')[0].split(' ')[0]  # Identifica el tipo de operacion y la ejecuta
@@ -166,7 +172,7 @@ def ProcessData(thread_number, data, input_conection):
 
 # @definition: Metodo que "levanta" el servidor  y lo deja ejecutando infinitamente.
 def OpenServer():
-    server_port = 7080  # Puerto de escucha del servidor
+    server_port = 3080  # Puerto de escucha del servidor
 
     # --------------Conexion entrante-----------------
     # Creando el socket TCP/IP
