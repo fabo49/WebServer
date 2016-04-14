@@ -57,10 +57,12 @@ def Check404Error(path):
 # @param: Un string (separado por comas ",") con los MIME Types que acepta/quiere el cliente.
 # @return: False si no hay error 406, True si si hay error.
 def Check406Error(mime_types, type):
-    type = type[type.rfind('.'):]
+    type = type[(type.rfind('.')+1):]
+    acceptable_types = []
     mime_types = mime_types.split(',')
     for element in mime_types:
-        acceptable_types = element.split(';')[0]
+        element = element.split(';')[0]
+        acceptable_types.append(element.split('/')[1])
     return True if type in acceptable_types else False
 
 # @definition: Evento que se activa cuando el servidor recibe una peticion de un GET.
@@ -186,7 +188,7 @@ def ProcessData(thread_number, data, input_conection):
 
 # @definition: Metodo que "levanta" el servidor  y lo deja ejecutando infinitamente.
 def OpenServer():
-    server_port = 3080  # Puerto de escucha del servidor
+    server_port = 5000  # Puerto de escucha del servidor
 
     # --------------Conexion entrante-----------------
     # Creando el socket TCP/IP
