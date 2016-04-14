@@ -78,6 +78,7 @@ def Get(dic_headers):
     data = data_url.split("?")[1] if len(data_url.split("?")) > 1 else " "
     WriteLog("GET" + ',' + timestamp + ',' + server + ',' + referer + ',' + url + ',' + data + '\n')
     data_return = "HTTP/1.1 200 OK\r\n\r\n"
+    # TODO: agregar los otros headers
 
     if url == '/' or url == '/index.html':
         entity_body = open("index.html", 'r')
@@ -110,6 +111,7 @@ def Post(dic_headers):
     data = dic_headers["Params:"]
     WriteLog("POST" + ',' + timestamp + ',' + server + ',' + referer + ',' + url + ',' + data + '\n')
     data_return = "HTTP/1.1 200 OK\r\n\r\n"
+    # TODO: agregar los otros headers
 
     user_info = data.replace('+', ' ').split('&')
     user_name = str(user_info[0].split('=')[1] + " " + user_info[1].split('=')[1])
@@ -124,10 +126,22 @@ def Post(dic_headers):
 # @definition: Evento que se activa cuando el servidor recibe una peticion de un HEAD.
 # @param: Diccionario con los headers
 # @return: String con la informacion que el servidor le va a retornar al cliente.
-def Head(data):
+def Head(dic_headers):
     print "--- Entro al HEAD"
+    # El [:-1] es para quitarle el "\r" ya que molesta para la bitacora
+    server = dic_headers["Host:"][:-1] if "Host:" in dic_headers else " "
+    referer = dic_headers["Referer:"][:-1] if "Referer:" in dic_headers else " "
+    timestamp = time.strftime("%c")
+    data_url = dic_headers["HEAD"].split(" ")[0]
+    url = data_url.split("?")[0]
+    data = data_url.split("?")[1] if len(data_url.split("?")) > 1 else " "
+    WriteLog("HEAD" + ',' + timestamp + ',' + server + ',' + referer + ',' + url + ',' + data + '\n')
+    data_return = "HTTP/1.1 200 OK\r\n\r\n"
+    # TODO: agregar los otros headers
 
     print "--- Salgo del HEAD"
+
+    return data_return
 
 
 # @definition: Metodo que analiza los encabezados que recibe el servidor y ejecuta la peticion que corresponda.
