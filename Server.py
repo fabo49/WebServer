@@ -61,9 +61,9 @@ def Check406Error(mime_types, type):
     acceptable_types = []
     mime_types = mime_types.split(',')
     for element in mime_types:
-        element = element.split(';')[0]
+        element = element.split(';')[0].replace('\r', '')
         acceptable_types.append(element.split('/')[1])
-    return True if type in acceptable_types else False
+    return False if type in acceptable_types else True
 
 # @definition: Evento que se activa cuando el servidor recibe una peticion de un GET.
 # @param: Diccionario con los headers
@@ -166,7 +166,7 @@ def ProcessData(thread_number, data, input_conection):
         dic_headers = DicData(data)
         if Check406Error(dic_headers["Accept:"], url[1:]):
             # Hay error 406, retornar error de codigo 406.
-            data_return = "HTTP/1.1 404 Not Acceptable\r\n\r\n"
+            data_return = "HTTP/1.1 406 Not Acceptable\r\n\r\n"
             entity_body = open("406.html", 'r')
             data_return += str(entity_body.read())
             entity_body.close()
@@ -188,7 +188,7 @@ def ProcessData(thread_number, data, input_conection):
 
 # @definition: Metodo que "levanta" el servidor  y lo deja ejecutando infinitamente.
 def OpenServer():
-    server_port = 5000  # Puerto de escucha del servidor
+    server_port = 3000  # Puerto de escucha del servidor
 
     # --------------Conexion entrante-----------------
     # Creando el socket TCP/IP
