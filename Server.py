@@ -179,7 +179,7 @@ def ProcessData(thread_number, data, input_conection):
 
     data_return = ""
     first_header = data.split('\n')[0]
-    url = first_header.split(' ')[1]
+    url = first_header.split(' ')[1].split("?")[0]
     if url != '/' and Check404Error(url[1:]):
         # Hay error 404, retornar error de codigo 404 y la pagina de error
         data_return = CreaterHeaderReturn("HTTP/1.1 404 Not Found\r\n", "/404.html")
