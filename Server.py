@@ -34,6 +34,30 @@ def DicData(data):
     return dict
 
 
+# @definition: Retorna el MIME Type al que pertenece la extension, acepta los siguientes tipos: html, png, xml, jpg, jpeg y pdf
+# @param: String donde viene el campo URL que se muestra en la bitacora
+# @return: String con el MIME Type del archivo
+def GetMimeType(url):
+    my_types = {'html': 'text/html', 'png': 'image/png', 'jpeg': 'image/jpeg', 'jpg': 'image/jpeg', 'xml': 'text/xml',
+                'pdf': 'application/pdf'}
+    return my_types['html'] if url == '/' else my_types[url.split('.')[1]]
+
+
+# @definition: Metodo que crea el encabezado que va a retornar el servidor
+# @param: "first_header" en donde viene el codigo que se le va a retornar el cliente
+# @param: "url" donde viene el nombre del archivo que solicito el cliente
+# @return: String con el encabezado
+def CreaterHeaderReturn(first_header, url):
+    header = first_header
+    header += "Server: mApache\r\n"
+    header += "Date: " + time.strftime("%c") + "\r\n"
+    header += "Content-Length: "
+    header += str(os.path.getsize(url[1:])) if url != '/' else str(os.path.getsize("index.html"))
+    header += "\r\n"
+    header += "Content-Type: " + GetMimeType(url) + "\r\n\r\n"
+    return header
+
+
 # @definition: Metodo auxiliar que escribe en la bitacora, al ser un recurso compartido, se encarga de bloquearlo para que solo haya un hilo escribiendo en ella a la vez.
 # @param: String con la informacion que se quiere escribir en la bitacora.
 def WriteLog(new_data):
@@ -57,13 +81,17 @@ def Check404Error(path):
 # @param: Un string (separado por comas ",") con los MIME Types que acepta/quiere el cliente.
 # @return: False si no hay error 406, True si si hay error.
 def Check406Error(mime_types, type):
-    type = type[(type.rfind('.')+1):]
+
+    type = type[(type.rfind('.') + 1):]
     acceptable_types = []
     mime_types = mime_types.split(',')
     for element in mime_types:
         element = element.split(';')[0].replace('\r', '')
         acceptable_types.append(element.split('/')[1])
+    if '*' in acceptable_types:
+        return False
     return False if type in acceptable_types else True
+
 
 # @definition: Evento que se activa cuando el servidor recibe una peticion de un GET.
 # @param: Diccionario con los headers
@@ -79,8 +107,7 @@ def Get(dic_headers):
     url = data_url.split("?")[0]
     data = data_url.split("?")[1] if len(data_url.split("?")) > 1 else " "
     WriteLog("GET" + ',' + timestamp + ',' + server + ',' + referer + ',' + url + ',' + data + '\n')
-    data_return = "HTTP/1.1 200 OK\r\n\r\n"
-    # TODO: agregar los otros headers
+    data_return = CreaterHeaderReturn("HTTP/1.1 200 OK\r\n", url)
 
     if url == '/' or url == '/index.html':
         entity_body = open("index.html", 'r')
@@ -112,8 +139,7 @@ def Post(dic_headers):
     # data += dic_headers.split("?")[1] if len(data_url.split("?")) > 1 else " "
     data = dic_headers["Params:"]
     WriteLog("POST" + ',' + timestamp + ',' + server + ',' + referer + ',' + url + ',' + data + '\n')
-    data_return = "HTTP/1.1 200 OK\r\n\r\n"
-    # TODO: agregar los otros headers
+    data_return = CreaterHeaderReturn("HTTP/1.1 200 OK\r\n", url)
 
     user_info = data.replace('+', ' ').split('&')
     user_name = str(user_info[0].split('=')[1] + " " + user_info[1].split('=')[1])
@@ -138,8 +164,7 @@ def Head(dic_headers):
     url = data_url.split("?")[0]
     data = data_url.split("?")[1] if len(data_url.split("?")) > 1 else " "
     WriteLog("HEAD" + ',' + timestamp + ',' + server + ',' + referer + ',' + url + ',' + data + '\n')
-    data_return = "HTTP/1.1 200 OK\r\n\r\n"
-    # TODO: agregar los otros headers
+    data_return = CreaterHeaderReturn("HTTP/1.1 200 OK\r\n", url)
 
     print "--- Salgo del HEAD"
 
@@ -157,8 +182,8 @@ def ProcessData(thread_number, data, input_conection):
     first_header = data.split('\n')[0]
     url = first_header.split(' ')[1]
     if url != '/' and Check404Error(url[1:]):
-        # Hay error 404, retornar error de codigo 404.
-        data_return = "HTTP/1.1 404 Not Found\r\n\r\n"
+        # Hay error 404, retornar error de codigo 404 y la pagina de error
+        data_return = CreaterHeaderReturn("HTTP/1.1 404 Not Found\r\n", "/404.html")
         entity_body = open("404.html", 'r')
         data_return += str(entity_body.read())
         entity_body.close()
@@ -166,7 +191,7 @@ def ProcessData(thread_number, data, input_conection):
         dic_headers = DicData(data)
         if Check406Error(dic_headers["Accept:"], url[1:]):
             # Hay error 406, retornar error de codigo 406.
-            data_return = "HTTP/1.1 406 Not Acceptable\r\n\r\n"
+            data_return = CreaterHeaderReturn("HTTP/1.1 406 Not Acceptable\r\n", "/406.html")
             entity_body = open("406.html", 'r')
             data_return += str(entity_body.read())
             entity_body.close()
@@ -183,12 +208,13 @@ def ProcessData(thread_number, data, input_conection):
 
     # Le envia la info al navegador y cierra la conexion
     input_conection.send(data_return)
+    time.sleep(1)
     input_conection.close()
 
 
 # @definition: Metodo que "levanta" el servidor  y lo deja ejecutando infinitamente.
 def OpenServer():
-    server_port = 3000  # Puerto de escucha del servidor
+    server_port = 1080  # Puerto de escucha del servidor
 
     # --------------Conexion entrante-----------------
     # Creando el socket TCP/IP
