@@ -39,7 +39,7 @@ def DicData(data):
 # @return: String con el MIME Type del archivo
 def GetMimeType(url):
     my_types = {'html': 'text/html', 'png': 'image/png', 'jpeg': 'image/jpeg', 'jpg': 'image/jpeg', 'xml': 'text/xml',
-                'pdf': 'application/pdf'}
+                'pdf': 'application/pdf', 'csv': 'text/csv'}
     return my_types['html'] if url == '/' else my_types[url.split('.')[1]]
 
 
@@ -81,7 +81,6 @@ def Check404Error(path):
 # @param: Un string (separado por comas ",") con los MIME Types que acepta/quiere el cliente.
 # @return: False si no hay error 406, True si si hay error.
 def Check406Error(mime_types, type):
-
     type = type[(type.rfind('.') + 1):]
     acceptable_types = []
     mime_types = mime_types.split(',')
@@ -214,7 +213,9 @@ def ProcessData(thread_number, data, input_conection):
 
 # @definition: Metodo que "levanta" el servidor  y lo deja ejecutando infinitamente.
 def OpenServer():
-    server_port = int(input('Ingrese el puerto de escucha del servidor: '))  # Puerto de escucha del servidor, se lo pide al usuario
+    server_port = int(
+        input('Ingrese el puerto de escucha del servidor: '))  # Puerto de escucha del servidor, se lo pide al usuario
+    print 'El servidor esta corriendo en \"localhost:'+str(server_port)+'\"...'
 
     # --------------Conexion entrante-----------------
     # Creando el socket TCP/IP
