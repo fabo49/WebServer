@@ -199,11 +199,11 @@ def ProcessData(thread_number, data, input_conection):
             # No hubo errores.
             operation = data.split('\n')[0].split(' ')[0]  # Identifica el tipo de operacion y la ejecuta
 
-            if (operation == "GET"):
+            if (operation == 'GET'):
                 data_return = Get(dic_headers)
-            elif (operation == "POST"):
+            elif (operation == 'POST'):
                 data_return = Post(dic_headers)
-            elif (operation == "HEAD"):
+            elif (operation == 'HEAD'):
                 data_return = Head(dic_headers)
 
     # Le envia la info al navegador y cierra la conexion
@@ -214,7 +214,7 @@ def ProcessData(thread_number, data, input_conection):
 
 # @definition: Metodo que "levanta" el servidor  y lo deja ejecutando infinitamente.
 def OpenServer():
-    server_port = 1080  # Puerto de escucha del servidor
+    server_port = int(input('Ingrese el puerto de escucha del servidor: '))  # Puerto de escucha del servidor, se lo pide al usuario
 
     # --------------Conexion entrante-----------------
     # Creando el socket TCP/IP
